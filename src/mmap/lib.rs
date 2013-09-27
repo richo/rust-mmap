@@ -36,9 +36,10 @@ impl Drop for MappedRegion {
 fn mmap(size: libc::size_t) -> Result<MappedRegion, ~str> {
     unsafe {
         let ptr = libc::mmap(0 as *libc::c_void, size, libc::PROT_READ, libc::MAP_ANON | libc::MAP_PRIVATE, 0, 0) as *libc::c_void;
-        return match ptr {
-            x if x == libc::MAP_FAILED => { Err(os::last_os_error()) }
-            _ => { Ok(MappedRegion{addr : ptr, len : size}) }
+        return if ptr == libc::MAP_FAILED {
+            Err(os::last_os_error())
+        } else {
+            Ok(MappedRegion{addr : ptr, len : size})
         }
     }
 }
@@ -58,7 +59,7 @@ fn test_all() {
     }
 
     do mmap_as_slice(4096) |v : &[u8]| {
-        println!("v[0] = {}", v[4095]);
+        println!("v[0] = {}", v[0]);
     }
-    println("exiting main");
+    println("exiting");
 }
