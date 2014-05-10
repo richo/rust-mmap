@@ -8,7 +8,19 @@ use std::vec::raw;
 
 struct MappedRegion {
     addr : *libc::c_void,
-    len : libc::size_t
+    len : libc::size_t,
+    prot: libc::c_int,
+}
+
+impl MappedRegion {
+    fn protect(&mut self, prot: uint) -> Option<MappedRegion> {
+        if libc::mprotect(self.addr, self.len, prot) < 0 {
+            None
+        } else {
+            self.prot = prot;
+            Some(self)
+        }
+    }
 }
 
 impl fmt::Show for MappedRegion {
@@ -53,12 +65,19 @@ pub fn mmap_as_slice<T, U>(size: libc::size_t, f: &fn(v: &[T]) -> U) -> U {
 #[test]
 fn test_all() {
     match mmap(4096) {
-        Ok(r) => { println!("ok: {}", r); }
+        Ok(r) => {
+            println!("ok: {}", r);
+            match r.protect(libc::PROT_READ | libc::PROT_EXEC) {
+                Some(r) => { println!("Protected!"); }
+                None => { println!("Mapping failed!"); }
+            }
+        }
         Err(s) => { println!("err: {}", s); }
     }
 
      mmap_as_slice(4096, |v : &[u8]| {
         println!("v[0] = {}", v[0]);
     });
+
     println("exiting");
 }
